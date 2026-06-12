@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     document.head.appendChild(style);
 
+    // Tu letra personalizada se mantiene intacta
     const lyricsData = [
         { time: 0, text1: "Para mi güera...", text2: "🎵", epic: false },
         { time: 22, text1: "Espera", text2: "", epic: false },
@@ -149,6 +150,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const numMistParticles = 25;
     const starColors = ['#ffffff', '#ffd700', '#aae2ff'];
 
+    // --- AQUÍ ESTABA EL PROBLEMA: ESTO SE HABÍA BORRADO ---
+
     for (let i = 0; i < numMistParticles; i++) {
         const particle = document.createElement('div');
         particle.classList.add('particle-mist');
@@ -163,6 +166,91 @@ document.addEventListener('DOMContentLoaded', () => {
         particle.style.animationDelay = `-${Math.random() * 40}s`;
         sky.appendChild(particle);
     }
+
+    for (let i = 0; i < numStars; i++) {
+        const starContainer = document.createElement('div'); starContainer.classList.add('star-container');
+        const starParent = document.createElement('div'); starParent.classList.add('star');
+        const starCore = document.createElement('div'); starCore.classList.add('star-core');
+        const size = (Math.random() * 2 + 1) + 'px';
+        starParent.style.width = size; starParent.style.height = size;
+        starContainer.style.top = (Math.random() * 100) + 'vh';
+        const randColorIndex = Math.random();
+        if (randColorIndex < 0.75) { starCore.style.backgroundColor = starColors[0]; starCore.style.boxShadow = '0 0 4px ' + starColors[0]; } 
+        else if (randColorIndex < 0.90) { starCore.style.backgroundColor = starColors[1]; starCore.style.boxShadow = '0 0 5px ' + starColors[1]; } 
+        else { starCore.style.backgroundColor = starColors[2]; starCore.style.boxShadow = '0 0 5px ' + starColors[2]; }
+        const twinkleDuration = (Math.random() * 2 + 1.5) + 's'; const twinkleDelay = `-${Math.random() * 3}s`;
+        starCore.style.animation = `twinkle ${twinkleDuration} ${twinkleDelay} infinite ease-in-out`;
+        const moveDuration = (Math.random() * 25 + 15) + 's'; const moveDelay = `-${Math.random() * 40}s`;
+        starContainer.style.animation = `moveRightFluid ${moveDuration} ${moveDelay} infinite linear`;
+        starParent.appendChild(starCore); starContainer.appendChild(starParent); sky.appendChild(starContainer);
+    }
+
+    const createExplosion = (x, y) => {
+        const numSparks = 8;
+        for (let i = 0; i < numSparks; i++) {
+            const spark = document.createElement('div'); spark.classList.add('spark');
+            const size = (Math.random() * 4 + 2) + 'px';
+            spark.style.width = size; spark.style.height = size;
+            spark.style.left = (x - parseFloat(size)/2) + 'px'; spark.style.top = (y - parseFloat(size)/2) + 'px';
+            const angle = Math.random() * Math.PI * 2; const distance = Math.random() * 50 + 20;
+            const dx = Math.cos(angle) * distance; const dy = Math.sin(angle) * distance;
+            spark.style.setProperty('--dx', dx + 'px'); spark.style.setProperty('--dy', dy + 'px');
+            if (Math.random() < 0.5) { spark.style.backgroundColor = '#fff'; } else { spark.style.backgroundColor = '#fffacd'; }
+            sky.appendChild(spark);
+            setTimeout(() => { spark.remove(); }, 600);
+        }
+    };
+
+    const interactionRadius = 130; 
+    const interactStars = (touchX, touchY) => {
+        const stars = document.querySelectorAll('.star');
+        stars.forEach(star => {
+            const starRect = star.getBoundingClientRect();
+            const starX = starRect.left + starRect.width / 2; const starY = starRect.top + starRect.height / 2;
+            const dx = starX - touchX; const dy = starY - touchY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < interactionRadius) {
+                const force = (interactionRadius - distance) / interactionRadius;
+                const repelDistance = force * 60; 
+                const repelX = (dx / distance) * repelDistance; const repelY = (dy / distance) * repelDistance;
+                star.style.transform = `translate3d(${repelX}px, ${repelY}px, 0)`;
+            }
+        });
+    };
+
+    const resetStars = () => {
+        const stars = document.querySelectorAll('.star');
+        setTimeout(() => {
+            stars.forEach(star => {
+                star.style.transition = 'transform 0.8s ease-out';
+                star.style.transform = 'translate3d(0, 0, 0)';
+                setTimeout(() => star.style.transition = 'transform 0.15s ease-out', 800);
+            });
+        }, 200);
+    };
+
+    const handleStart = (e) => {
+        let touchX, touchY;
+        if (e.type.startsWith('touch')) { touchX = e.touches[0].clientX; touchY = e.touches[0].clientY; } 
+        else { touchX = e.clientX; touchY = e.clientY; }
+        createExplosion(touchX, touchY); interactStars(touchX, touchY);
+    };
+
+    const handleMove = (e) => {
+        let touchX, touchY;
+        if (e.type.startsWith('touch')) { touchX = e.touches[0].clientX; touchY = e.touches[0].clientY; } 
+        else { touchX = e.clientX; touchY = e.clientY; }
+        interactStars(touchX, touchY);
+    };
+
+    document.addEventListener('mousedown', handleStart);
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', resetStars);
+    document.addEventListener('touchstart', handleStart, { passive: true });
+    document.addEventListener('touchmove', handleMove, { passive: true });
+    document.addEventListener('touchend', resetStars);
+
+    // --- HASTA AQUÍ LLEGA LA MAGIA RECUPERADA ---
 
     startBtn.addEventListener('click', () => {
         bgMusic.play().catch(error => {
